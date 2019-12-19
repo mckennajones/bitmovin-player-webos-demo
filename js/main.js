@@ -1,14 +1,42 @@
-var player;
+var player1;
+var player2;
+
+var conf = {
+	key : "YOUR PLAYER KEY",
+	playback : {
+		autoplay : false,
+		preferredTech: [{
+			player: 'html5',
+		    streaming: 'dash'
+		  }]
+	},
+	style: {
+		ux: false
+	},
+	tweaks : {
+		file_protocol : true,
+		app_id : "com.bitmovin.demo.webapp",
+		BACKWARD_BUFFER_PURGE_INTERVAL: 10
+	},
+	buffer :{
+		video: {
+			forwardduration: 30,
+			backwardduration: 10,
+		},
+		audio: {
+			forwardduration: 30,
+			backwardduration: 10
+		}
+	}
+};
+
+var onTimeChanged = function(event) {
+	console.log("TimeChanged: " + event.time);
+}
 
 window.onload = function() {
 	setupControllerEvents();
-	setupPlayer();
-}
-
-
-function setupPlayer() {
 	
-	// add all necessary (and loaded) modules to the player core
 	bitmovin.player.core.Player.addModule(window.bitmovin.player.polyfill.default);
 	bitmovin.player.core.Player.addModule(window.bitmovin.player['engine-bitmovin'].default);
 	bitmovin.player.core.Player.addModule(window.bitmovin.player['container-mp4'].default);
@@ -22,35 +50,12 @@ function setupPlayer() {
 	bitmovin.player.core.Player.addModule(window.bitmovin.player.style.default);
 	bitmovin.player.core.Player.addModule(window.bitmovin.player.tizen.default);
 	
-	var conf = {
-		key : "YOUR_PLAYER_KEY",
-		playback : {
-			autoplay : true,
-			preferredTech: [{
-				player: 'html5',
-			    streaming: 'dash'
-			  }]
-		},
-		style: {
-			ux: false
-		},
-		tweaks : {
-			file_protocol : true,
-			app_id : "com.bitmovin.demo.webapp",
-			BACKWARD_BUFFER_PURGE_INTERVAL: 10
-		},
-		buffer :{
-			video: {
-				forwardduration: 30,
-				backwardduration: 10,
-			},
-			audio: {
-				forwardduration: 30,
-				backwardduration: 10
-			}
-		}
-	}
+	player1 = setupPlayer('player1');
+	player1.play();
+}
 
+
+function setupPlayer(containerId) {
 	var source = {
 		// AVC Stream
         // dash : "https://bitmovin-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd",
@@ -66,10 +71,12 @@ function setupPlayer() {
 		}
 	}
 	
-	var container = document.getElementById('player');
-	player = new bitmovin.player.core.Player(container, conf);
+	var container = document.getElementById(containerId);
+	var playerInstance = new bitmovin.player.core.Player(container, conf);
 	
-	player.load(source).then(function(value) {
+	playerInstance.on('timechanged', onTimeChanged);
+	
+	playerInstance.load(source).then(function(value) {
 		// Success
 		console.log("Successfully created bitmovin player instance");
 	}, function(reason) {
@@ -77,12 +84,14 @@ function setupPlayer() {
 		console.log("Error while creating bitmovin player instance");
 	});
 	
-	player.on(bitmovin.player.core.PlayerEvent.Warning, function(data){
+	playerInstance.on(bitmovin.player.core.PlayerEvent.Warning, function(data){
         console.log("On Warning: "+JSON.stringify(data))
     });
-	player.on(bitmovin.player.core.PlayerEvent.Error, function(data){
+	playerInstance.on(bitmovin.player.core.PlayerEvent.Error, function(data){
         console.log("On Error: "+JSON.stringify(data))
     });
+		
+	return playerInstance;
 }
 
 function setupControllerEvents() {
@@ -96,27 +105,26 @@ function setupControllerEvents() {
 		} 
 		switch(keycode) {
 	      	case 13:
-	          tooglePlayPause();
+	          togglePlayPause();
 	          break;
 		    case 415: 
 		    	//Play Button Pressed
-		    	player.play();
+		    	player1.play();
 		    	break;
 		    case 19: 
 		    	//Pause BUtton Pressed
-		    	player.pause(); 
+		    	player1.pause(); 
 		    	break; 
 		    case 412:
 		    	//Jump Back 30 Seconds
 		    	player.seek(player.getCurrentTime()-30)
 		    	break;
-		    case 417:
-		    	//Jump Forward 30 Seconds
-		    	player.seek(player.getCurrentTime()+30)
+		    case 39:
+		    	player2 = setupPlayer('player2');
 		    	break;
 		    case 413:
 		    	//Unload Player
-		    	player.unload();
+		    	player1.unload();
 		    	break;
 		    default:
 		    	console.log("Key Pressed: "+keycode);
@@ -124,10 +132,10 @@ function setupControllerEvents() {
 	});
 }
 
-function tooglePlayPause() {
-	if(player.isPaused()) {
-		player.play();
+function togglePlayPause() {
+	if(player1.isPaused()) {
+		player1.play();
 	} else {
-	   player.pause();
+	   player1.pause();
 	}
 }
